@@ -6,9 +6,22 @@ Ranked by impact-to-effort ratio. Based on full codebase audit of tools, data qu
 
 ---
 
+## Implementation Checklist
+
+After implementing any upgrade, complete **all** of the following before marking it done:
+
+1. **Tests** — Add or update tests for new/changed functionality. Run `npm run build && npm test` and ensure everything passes.
+2. **Tool descriptions** — If a tool's capabilities changed, update its `description` string in `src/tools/*.ts` (this is what the LLM sees when deciding which tool to use).
+3. **Prompts** — If the LLM needs to know about the new capability, update both `src/prompts/create-mod.ts` and `src/prompts/modify-mod.ts`.
+4. **README** — If user-facing tool descriptions changed or a new tool was added, update the tools table in `README.md`.
+5. **This file** — Mark the item as done: strikethrough the heading with `~~` and add `✅ Done (PR #N)`, and do the same in the Summary Table.
+6. **New tools** — If adding a new tool, register it in `src/server.ts` and add a row to the README tools table.
+
+---
+
 ## Tier 1: Quick Wins (Small Effort, High Impact)
 
-### 1. Automatic Inheritance Context on Class Lookup
+### ~~1. Automatic Inheritance Context on Class Lookup~~ ✅ Done (PR #7)
 
 **What**: When `api_search` returns a class result, automatically include method signatures from the first 2-3 parent classes inline. `getInheritedMembers()` already exists in `SearchEngine` but is **never called from `api_search`** — it's only wired to the `enfusion://class/{name}` MCP resource, which most LLMs don't proactively read.
 
@@ -22,7 +35,7 @@ Ranked by impact-to-effort ratio. Based on full codebase audit of tools, data qu
 
 ---
 
-### 2. Enum-Aware Search
+### ~~2. Enum-Aware Search~~ ✅ Done (PR #8)
 
 **What**: Enfusion represents many enums as classes with static properties (189 classes have >3 properties and no methods — these are enum-like structs/data classes). The current `searchEnums` only checks `cls.enums[]` which is **empty for all 8,693 classes** (0 enums scraped). Add a heuristic that surfaces these property-only classes when `type: "enum"` is searched, and tag them as enum-like in results.
 
@@ -36,7 +49,7 @@ Ranked by impact-to-effort ratio. Based on full codebase audit of tools, data qu
 
 ---
 
-### 3. Related Classes in Search Results
+### ~~3. Related Classes in Search Results~~ ✅ Done (PR #8)
 
 **What**: When a class lookup matches (e.g., `SCR_CharacterDamageManagerComponent`), also include a compact one-liner for each sibling class in the same API group — just name + brief. This gives the LLM discovery paths without requiring follow-up searches.
 
@@ -402,9 +415,9 @@ Ranked by impact-to-effort ratio. Based on full codebase audit of tools, data qu
 
 | # | Idea | Effort | Category | Sources |
 |---|------|--------|----------|---------|
-| 1 | Automatic Inheritance Context | S | Hallucination Prevention | L1 |
-| 2 | Enum-Aware Search | S | Context Quality | L1 |
-| 3 | Related Classes in Search Results | S | Context Quality | L1 |
+| ~~1~~ | ~~Automatic Inheritance Context~~ ✅ | S | Hallucination Prevention | L1 |
+| ~~2~~ | ~~Enum-Aware Search~~ ✅ | S | Context Quality | L1 |
+| ~~3~~ | ~~Related Classes in Search Results~~ ✅ | S | Context Quality | L1 |
 | 4 | Wiki Full-Text Retrieval | S | Context Quality | L1 |
 | 5 | Component Discovery Tool | S | Context Quality | L2 |
 | 6 | Workbench Connection Health | S | UX Polish | L2 |
