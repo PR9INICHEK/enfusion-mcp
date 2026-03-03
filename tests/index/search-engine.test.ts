@@ -112,6 +112,13 @@ describe("SearchEngine", () => {
     it("returns undefined for unknown group", () => {
       expect(engine.getGroup("NonExistentGroup12345")).toBeUndefined();
     });
+
+    it("groups contain multiple classes for sibling discovery", () => {
+      const groups = engine.getGroups();
+      const largeGroup = groups.find((g) => g.classes.length > 5);
+      expect(largeGroup).toBeDefined();
+      expect(largeGroup!.classes.length).toBeGreaterThan(5);
+    });
   });
 
   describe("getAllClassNames", () => {
@@ -143,6 +150,31 @@ describe("SearchEngine", () => {
         expect(r.enumInfo).toBeDefined();
         expect(r.enumInfo.name).toBeTruthy();
       }
+    });
+
+    it("finds enum-like classes by class name", () => {
+      const results = engine.searchEnums("SCR_SoundEvent");
+      expect(results.length).toBeGreaterThan(0);
+      const match = results.find((r) => r.enumInfo.name === "SCR_SoundEvent");
+      expect(match).toBeDefined();
+      expect(match!.enumInfo.values.length).toBeGreaterThan(0);
+      expect(match!.enumInfo.description).toContain("[Enum-like class]");
+    });
+
+    it("finds enum-like classes by property/value name", () => {
+      // SCR_SoundEvent has properties like SOUND_*
+      const results = engine.searchEnums("SOUND_CP");
+      expect(results.length).toBeGreaterThan(0);
+      // Should reference SCR_SoundEvent
+      expect(results.some((r) => r.className === "SCR_SoundEvent")).toBe(true);
+    });
+
+    it("detects GameLibWidgetType as enum-like", () => {
+      const results = engine.searchEnums("GameLibWidgetType");
+      expect(results.length).toBeGreaterThan(0);
+      const match = results.find((r) => r.enumInfo.name === "GameLibWidgetType");
+      expect(match).toBeDefined();
+      expect(match!.enumInfo.values.length).toBeGreaterThanOrEqual(4);
     });
   });
 

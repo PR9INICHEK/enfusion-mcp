@@ -130,6 +130,56 @@ export class SearchEngine {
       }
     }
 
+    // Detect enum-like classes (0 methods, 4+ properties) and index as synthetic enums
+    for (const cls of allClasses) {
+      const methodCount =
+        (cls.methods?.length || 0) +
+        (cls.protectedMethods?.length || 0) +
+        (cls.staticMethods?.length || 0);
+      const allProps = [...(cls.properties || []), ...(cls.protectedProperties || [])];
+      if (methodCount > 0 || allProps.length < 4) continue;
+
+      // Build a synthetic EnumInfo from properties
+      const syntheticEnum: EnumInfo = {
+        name: cls.name,
+        description: `[Enum-like class] ${cls.brief || "Static constant values"}`,
+        values: allProps.map((p) => ({
+          name: p.name,
+          value: "",
+          description: p.type,
+        })),
+      };
+
+      const enumEntry: EnumSearchResult = {
+        className: cls.name,
+        classSource: cls.source,
+        classGroup: cls.group,
+        enumInfo: syntheticEnum,
+      };
+
+      // Index by class name
+      const classKey = cls.name.toLowerCase();
+      let entries = this.enumIndex.get(classKey);
+      if (!entries) {
+        entries = [];
+        this.enumIndex.set(classKey, entries);
+      }
+      entries.push(enumEntry);
+
+      // Index by each property/value name
+      for (const prop of allProps) {
+        const valKey = prop.name.toLowerCase();
+        let valEntries = this.enumIndex.get(valKey);
+        if (!valEntries) {
+          valEntries = [];
+          this.enumIndex.set(valKey, valEntries);
+        }
+        if (!valEntries.some((e) => e.enumInfo.name === syntheticEnum.name && e.className === cls.name)) {
+          valEntries.push(enumEntry);
+        }
+      }
+    }
+
     this.loaded = true;
   }
 

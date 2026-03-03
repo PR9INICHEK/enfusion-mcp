@@ -16,7 +16,7 @@ interface InheritedContext {
   totalAncestorCount: number;
 }
 
-function formatClassResult(cls: ClassInfo, verbose = true, inherited?: InheritedContext): string {
+function formatClassResult(cls: ClassInfo, verbose = true, inherited?: InheritedContext, siblingClassNames?: string[]): string {
   const lines: string[] = [];
   lines.push(`## ${cls.name}`);
   lines.push(`Source: ${cls.source === "enfusion" ? "Enfusion Engine" : "Arma Reforger"} API`);
@@ -180,6 +180,19 @@ function formatClassResult(cls: ClassInfo, verbose = true, inherited?: Inherited
     }
   }
 
+  // Related classes in the same API group
+  if (verbose && siblingClassNames && siblingClassNames.length > 0) {
+    lines.push("");
+    lines.push(`### Related Classes in Group`);
+    const shown = siblingClassNames.slice(0, 15);
+    for (const name of shown) {
+      lines.push(`- ${name}`);
+    }
+    if (siblingClassNames.length > 15) {
+      lines.push(`  ... and ${siblingClassNames.length - 15} more`);
+    }
+  }
+
   if (cls.sourceFile) {
     lines.push("");
     lines.push(`Source file: ${cls.sourceFile}`);
@@ -216,7 +229,9 @@ function formatEnumResult(results: EnumSearchResult[]): string {
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     const sourceLabel = r.classSource === "enfusion" ? "Enfusion Engine" : "Arma Reforger";
-    lines.push(`${i + 1}. **${r.enumInfo.name}** (in ${r.className})`);
+    const isEnumLike = r.enumInfo.description.startsWith("[Enum-like class]");
+    const label = isEnumLike ? "enum-like class" : `in ${r.className}`;
+    lines.push(`${i + 1}. **${r.enumInfo.name}** (${label})`);
     if (r.enumInfo.description) {
       lines.push(`   ${r.enumInfo.description}`);
     }
@@ -298,7 +313,14 @@ export function registerApiSearch(server: McpServer, searchEngine: SearchEngine)
             const inherited = searchEngine.getInheritedMembersLimited(cls.name, 3);
             inheritedCtx = { ...inherited, totalAncestorCount: chain.length - 1 };
           }
-          text = formatClassResult(cls, true, inheritedCtx);
+          let siblings: string[] | undefined;
+          if (cls.group) {
+            const group = searchEngine.getGroup(cls.group);
+            if (group) {
+              siblings = group.classes.filter((name) => name !== cls.name);
+            }
+          }
+          text = formatClassResult(cls, true, inheritedCtx, siblings);
         } else {
           text = results.map((cls) => formatClassResult(cls, false)).join("\n\n---\n\n");
         }
@@ -338,7 +360,14 @@ export function registerApiSearch(server: McpServer, searchEngine: SearchEngine)
                 const inherited = searchEngine.getInheritedMembersLimited(r.classInfo.name, 3);
                 inheritedCtx = { ...inherited, totalAncestorCount: chain.length - 1 };
               }
-              parts.push(formatClassResult(r.classInfo, verbose, inheritedCtx));
+              let siblings: string[] | undefined;
+              if (verbose && r.classInfo.group) {
+                const group = searchEngine.getGroup(r.classInfo.group);
+                if (group) {
+                  siblings = group.classes.filter((name) => name !== r.classInfo!.name);
+                }
+              }
+              parts.push(formatClassResult(r.classInfo, verbose, inheritedCtx, siblings));
             } else if (r.type === "method" && r.methodResult) {
               const mr = r.methodResult;
               const sourceLabel = mr.classSource === "enfusion" ? "Enfusion" : "Arma Reforger";
