@@ -51,10 +51,20 @@ export class PakVirtualFS {
 
     let pakFiles: string[];
     try {
-      pakFiles = readdirSync(addonsPath)
-        .filter((f) => extname(f).toLowerCase() === ".pak")
-        .sort() // deterministic order — first pak alphabetically wins on duplicates
-        .map((f) => join(addonsPath, f));
+      // Scan addons/ and all its subdirectories (data/, core/, etc.)
+      const scanDir = (dir) => {
+        const results = [];
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const full = join(dir, entry.name);
+          if (entry.isDirectory()) {
+              results.push(...scanDir(full));
+          } else if (extname(entry.name).toLowerCase() === ".pak") {
+              results.push(full);
+          }
+        }
+        return results;
+      };
+      pakFiles = scanDir(addonsPath).sort();
     } catch {
       return null;
     }
